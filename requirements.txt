@@ -1,0 +1,14 @@
+accelerate
+bitsandbytes
+black
+datasets
+ipykernel
+matplotlib
+peft
+python-dotenv
+scipy
+torch 
+torchaudio
+torchvision 
+transformers
+trl
