@@ -1,9 +1,10 @@
 
 # LoRA Fine‑Tuning on Apple Silicon (MPS)
 
-Fine-tune and run Large Language Models (LLMs) locally on Mac (M1/M2/M3) using [LoRA](https://arxiv.org/abs/2106.09685) adapters and Apple’s MPS backend. This repository provides:
+Fine-tune and run Large Language Models (LLMs) locally on Mac (M1/M2/M3) using [LoRA](https://arxiv.org/abs/2106.09685) adapters and Apple's MPS backend. This repository provides:
 
-- 📒 A well-documented notebook and Python script for end-to-end fine-tuning
+- 🚀 **Interactive Streamlit UI** for easy, no-code fine-tuning with real-time monitoring
+- 📒 A well-documented notebook for programmatic fine-tuning
 - 🧪 Minimal benchmark and testing helpers
 - 📝 Ready-to-use code snippets for saving, loading, inference, and merging LoRA adapters
 
@@ -18,6 +19,7 @@ This project enables fast, memory-efficient LLM fine-tuning on Apple Silicon Mac
 
 ## Why Use This Repo?
 - 🚀 Fast iteration on Mac without NVIDIA GPUs
+- 🎨 User-friendly Streamlit interface (no coding required!)
 - 💾 Minimal memory footprint via LoRA
 - 🔁 Clear, reproducible steps adaptable to your own datasets and models
 
@@ -26,7 +28,7 @@ This project enables fast, memory-efficient LLM fine-tuning on Apple Silicon Mac
 - macOS 12.3+ (recommended: 13+)
 - Python 3.10+
 - Apple Silicon (M1/M2/M3) with MPS
-- Packages: [transformers](https://github.com/huggingface/transformers), [datasets](https://github.com/huggingface/datasets), [peft](https://github.com/huggingface/peft), [accelerate](https://github.com/huggingface/accelerate), [trl](https://github.com/huggingface/trl), [torch](https://pytorch.org/)
+- Packages: [transformers](https://github.com/huggingface/transformers), [datasets](https://github.com/huggingface/datasets), [peft](https://github.com/huggingface/peft), [accelerate](https://github.com/huggingface/accelerate), [trl](https://github.com/huggingface/trl), [torch](https://pytorch.org/), [streamlit](https://streamlit.io/)
 
 
 ## Installation
@@ -47,6 +49,36 @@ pip install -r requirements.txt
 pip install huggingface_hub
 huggingface-cli login
 ```
+
+
+## Quickstart (Streamlit UI) 🎨
+
+The easiest way to fine-tune models is using the interactive Streamlit interface:
+
+```bash
+streamlit run app.py
+```
+
+Or use the Makefile:
+
+```bash
+make run
+```
+
+The web interface will open automatically in your browser. From there you can:
+
+1. **Setup Tab**: Configure model, dataset, and LoRA parameters, then load and apply LoRA
+2. **Training Tab**: Start training with real-time progress monitoring
+3. **Testing Tab**: Test your fine-tuned model with custom prompts
+4. **Export Tab**: Save LoRA adapters or merge them into a full model
+
+**Features:**
+- 🎯 Preset models (Llama 3.2 1B/3B) or custom HuggingFace models
+- 📊 Preset datasets (IMDB, WikiText) or custom datasets
+- ⚙️ Interactive LoRA configuration (rank, alpha, dropout)
+- 📈 Real-time training metrics and visualization
+- 🧪 Live testing with adjustable generation parameters
+- 💾 Export options: LoRA adapters (few MB) or merged models
 
 
 ## Quickstart (Notebook)
@@ -137,4 +169,5 @@ Apache-2.0 License
 ## Acknowledgments
 - [Hugging Face Transformers](https://github.com/huggingface/transformers), [Datasets](https://github.com/huggingface/datasets), [Accelerate](https://github.com/huggingface/accelerate), [TRL](https://github.com/huggingface/trl)
 - [PEFT (LoRA)](https://github.com/huggingface/peft)
+- [Streamlit](https://streamlit.io/) for the interactive UI framework
 - [Meta (Llama models)](https://ai.meta.com/tools/llama/) and the open‑source community
