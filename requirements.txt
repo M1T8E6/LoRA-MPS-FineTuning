@@ -5,8 +5,10 @@ datasets
 ipykernel
 matplotlib
 peft
+plotly
 python-dotenv
 scipy
+streamlit
 torch 
 torchaudio
 torchvision 
