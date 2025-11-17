@@ -4,24 +4,21 @@ User-friendly Streamlit app for fine-tuning LLMs with LoRA on Mac (MPS)
 """
 
 import os
-from typing import Dict, Any, List, Optional, Tuple, Set, Union
 import streamlit as st
 import torch
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
-# HuggingFace imports
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    TrainingArguments,
-    Trainer,
-    DataCollatorForLanguageModeling,
-    PreTrainedModel,
-    PreTrainedTokenizerBase,
+# Backend imports
+from backend import (
+    check_mps_availability,
+    load_model_and_tokenizer,
+    prepare_dataset,
+    find_target_modules,
+    create_lora_config,
+    apply_lora_to_model,
+    get_training_args,
+    create_trainer,
+    plot_training_metrics,
 )
-from peft import LoraConfig, get_peft_model, TaskType, PeftModel
-from datasets import load_dataset, Dataset, DatasetDict
 
 # Set page config
 st.set_page_config(
@@ -61,162 +58,6 @@ if "model" not in st.session_state:
     st.session_state.model = None
 if "tokenizer" not in st.session_state:
     st.session_state.tokenizer = None
-
-
-def check_mps_availability() -> Tuple[torch.device, bool, str]:
-    """Check if MPS is available and return device info"""
-    mps_is_available = torch.backends.mps.is_available()
-
-    if mps_is_available:
-        dev = torch.device("mps")
-        msg = "✅ MPS (Apple Silicon) available"
-    else:
-        dev = torch.device("cpu")
-        msg = "⚠️ MPS not available, using CPU (slower)"
-
-    return dev, mps_is_available, msg
-
-
-def find_target_modules(
-    base_model: Union[PreTrainedModel, PeftModel],
-    exclude_names: Optional[Set[str]] = None,
-) -> List[str]:
-    """Identify candidate module names to apply LoRA"""
-    if exclude_names is None:
-        exclude_names = {"lm_head", "embed_tokens", "wte", "wpe", "ln_f"}
-
-    found_modules: Set[str] = set()
-    for name, module in base_model.named_modules():
-        if isinstance(module, torch.nn.Linear):
-            module_name = name.split(".")[-1]
-            if module_name:
-                found_modules.add(module_name)
-
-    return list(found_modules - exclude_names)
-
-
-def load_model_and_tokenizer(
-    model_id: str, target_device: torch.device
-) -> Tuple[PreTrainedModel, PreTrainedTokenizerBase]:
-    """Load model and tokenizer"""
-    with st.spinner(f"Loading model {model_id}..."):
-        loaded_tokenizer = AutoTokenizer.from_pretrained(
-            model_id, trust_remote_code=True
-        )
-
-        if loaded_tokenizer.pad_token is None:
-            loaded_tokenizer.pad_token = loaded_tokenizer.eos_token
-
-        loaded_model = AutoModelForCausalLM.from_pretrained(
-            model_id,
-            torch_dtype=torch.float16,
-            device_map={"": target_device},
-            trust_remote_code=True,
-        )
-
-    return loaded_model, loaded_tokenizer
-
-
-def prepare_dataset(
-    ds_name: str, n_samples: int, tok: PreTrainedTokenizerBase, seq_max_length: int
-) -> Tuple[Dataset, Dataset, int]:
-    """Load and tokenize dataset"""
-    with st.spinner(f"Loading dataset {ds_name}..."):
-        dataset = load_dataset(ds_name, split=f"train[:{n_samples}]")
-
-        def tokenize_function(examples: Dict[str, Any]) -> Union[Dict[str, Any], Any]:
-            return tok(
-                examples["text"],
-                truncation=True,
-                max_length=seq_max_length,
-                padding="max_length",
-                return_tensors=None,
-            )
-
-        # Get column names - handle different dataset types
-        columns_to_remove: Optional[List[str]] = None
-        if hasattr(dataset, "column_names"):
-            cols = dataset.column_names  # type: ignore
-            # Convert to list if it's a list/tuple
-            if isinstance(cols, (list, tuple)):
-                columns_to_remove = list(cols)
-
-        tokenized_dataset = dataset.map(  # type: ignore
-            tokenize_function,
-            batched=True,
-            remove_columns=columns_to_remove,
-        )
-
-        # Handle different dataset types
-        if isinstance(tokenized_dataset, Dataset):
-            split_ds = tokenized_dataset.train_test_split(
-                test_size=0.1, seed=42)
-        elif isinstance(tokenized_dataset, DatasetDict):
-            # Already split
-            split_ds = tokenized_dataset
-        else:
-            # Fallback: try to call train_test_split
-            split_ds = tokenized_dataset.train_test_split(
-                test_size=0.1, seed=42
-            )  # type: ignore
-
-    return split_ds["train"], split_ds["test"], n_samples  # type: ignore
-
-
-def create_lora_config(
-    r: int, alpha: int, dropout: float, modules_to_target: List[str]
-) -> LoraConfig:
-    """Create LoRA configuration"""
-    return LoraConfig(
-        r=r,
-        lora_alpha=alpha,
-        target_modules=modules_to_target,
-        lora_dropout=dropout,
-        bias="none",
-        task_type=TaskType.CAUSAL_LM,
-    )
-
-
-def plot_training_metrics(training_history: List[Dict[str, Any]]) -> go.Figure:
-    """Create interactive training metrics plot"""
-    losses_train = [entry["loss"]
-                    for entry in training_history if "loss" in entry]
-    losses_eval = [
-        entry["eval_loss"] for entry in training_history if "eval_loss" in entry
-    ]
-
-    figure = make_subplots(
-        rows=1, cols=2, subplot_titles=("Training Loss", "Validation Loss")
-    )
-
-    if losses_train:
-        figure.add_trace(
-            go.Scatter(
-                y=losses_train,
-                mode="lines",
-                name="Training Loss",
-                line=dict(color="#667eea", width=2),
-            ),
-            row=1,
-            col=1,
-        )
-
-    if losses_eval:
-        figure.add_trace(
-            go.Scatter(
-                y=losses_eval,
-                mode="lines",
-                name="Validation Loss",
-                line=dict(color="#f093fb", width=2),
-            ),
-            row=1,
-            col=2,
-        )
-
-    figure.update_layout(height=400, showlegend=True,
-                         title_text="Training Metrics")
-
-    return figure
 
 
 # =============================================================================
@@ -402,16 +243,18 @@ with tab1:
             "🔄 Load Model and Tokenizer", type="primary", use_container_width=True
         ):
             try:
-                model, tokenizer = load_model_and_tokenizer(model_name, device)
-                st.session_state.model = model
-                st.session_state.tokenizer = tokenizer
-                st.session_state.model_loaded = True
+                with st.spinner(f"Loading model {model_name}..."):
+                    model, tokenizer = load_model_and_tokenizer(
+                        model_name, device)
+                    st.session_state.model = model
+                    st.session_state.tokenizer = tokenizer
+                    st.session_state.model_loaded = True
 
-                # Model info
-                total_params = sum(p.numel() for p in model.parameters())
+                    # Model info
+                    total_params = sum(p.numel() for p in model.parameters())
 
-                st.success("✅ Model loaded successfully!")
-                st.metric("Total parameters", f"{total_params:,}")
+                    st.success("✅ Model loaded successfully!")
+                    st.metric("Total parameters", f"{total_params:,}")
 
             except (ValueError, OSError, RuntimeError) as e:
                 st.error(f"❌ Loading error: {str(e)}")
@@ -429,21 +272,22 @@ with tab1:
                 st.warning("⚠️ Load the model first!")
             else:
                 try:
-                    train_ds, eval_ds, total = prepare_dataset(
-                        dataset_name,
-                        num_samples,
-                        st.session_state.tokenizer,
-                        max_length,
-                    )
-                    st.session_state.train_dataset = train_ds
-                    st.session_state.eval_dataset = eval_ds
-                    st.session_state.dataset_loaded = True
+                    with st.spinner(f"Loading dataset {dataset_name}..."):
+                        train_ds, eval_ds, total = prepare_dataset(
+                            dataset_name,
+                            num_samples,
+                            st.session_state.tokenizer,
+                            max_length,
+                        )
+                        st.session_state.train_dataset = train_ds
+                        st.session_state.eval_dataset = eval_ds
+                        st.session_state.dataset_loaded = True
 
-                    st.success("✅ Dataset loaded and tokenized!")
-                    col_a, col_b = st.columns(2)
+                        st.success("✅ Dataset loaded and tokenized!")
+                        col_a, col_b = st.columns(2)
 
-                    col_a.metric("Training samples", len(train_ds))
-                    col_b.metric("Validation samples", len(eval_ds))
+                        col_a.metric("Training samples", len(train_ds))
+                        col_b.metric("Validation samples", len(eval_ds))
 
                 except (ValueError, KeyError, OSError) as e:
                     st.error(f"❌ Error: {str(e)}")
@@ -478,18 +322,9 @@ with tab1:
                     )
 
                     # Apply LoRA
-                    st.session_state.model = get_peft_model(
+                    st.session_state.model = apply_lora_to_model(
                         st.session_state.model, lora_config
                     )
-
-                    # Enable optimizations
-                    # type: ignore[attr-defined]
-                    st.session_state.model.gradient_checkpointing_enable()
-                    # type: ignore[attr-defined]
-                    st.session_state.model.enable_input_require_grads()
-                    if hasattr(st.session_state.model, "config"):
-                        # type: ignore[attr-defined]
-                        st.session_state.model.config.use_cache = False
 
                     st.session_state.lora_applied = True
 
@@ -545,42 +380,22 @@ with tab2:
             st.session_state.training_started = True
 
             try:
-                # Prepare data collator
-                data_collator = DataCollatorForLanguageModeling(
-                    tokenizer=st.session_state.tokenizer, mlm=False
-                )
-
                 # Training arguments
-                training_args = TrainingArguments(
+                training_args = get_training_args(
                     output_dir=f"./{output_name}-finetuned",
-                    num_train_epochs=num_epochs,
-                    per_device_train_batch_size=batch_size,
-                    per_device_eval_batch_size=batch_size,
+                    num_epochs=num_epochs,
+                    batch_size=batch_size,
                     gradient_accumulation_steps=gradient_accumulation,
                     learning_rate=learning_rate,
-                    warmup_steps=100,
-                    gradient_checkpointing=True,
-                    fp16=False,
-                    bf16=False,
-                    logging_steps=10,
-                    report_to="none",
-                    eval_strategy="steps",
-                    eval_steps=50,
-                    save_strategy="steps",
-                    save_steps=100,
-                    save_total_limit=3,
-                    load_best_model_at_end=True,
-                    remove_unused_columns=False,
-                    seed=42,
                 )
 
                 # Create trainer
-                trainer = Trainer(
+                trainer = create_trainer(
                     model=st.session_state.model,
-                    args=training_args,
+                    tokenizer=st.session_state.tokenizer,
                     train_dataset=st.session_state.train_dataset,
                     eval_dataset=st.session_state.eval_dataset,
-                    data_collator=data_collator,
+                    training_args=training_args,
                 )
 
                 st.session_state.trainer = trainer
