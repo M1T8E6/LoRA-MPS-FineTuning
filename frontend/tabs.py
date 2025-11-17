@@ -42,8 +42,7 @@ def render_setup_tab(
         ):
             try:
                 with st.spinner(f"Loading model {model_name}..."):
-                    model, tokenizer = load_model_and_tokenizer(
-                        model_name, device)
+                    model, tokenizer = load_model_and_tokenizer(model_name, device)
                     st.session_state.model = model
                     st.session_state.tokenizer = tokenizer
                     st.session_state.model_loaded = True
@@ -110,8 +109,7 @@ def render_setup_tab(
             try:
                 with st.spinner("Applying LoRA..."):
                     # Find target modules
-                    target_modules = find_target_modules(
-                        st.session_state.model)
+                    target_modules = find_target_modules(st.session_state.model)
                     st.info(f"**Target modules:** {', '.join(target_modules)}")
 
                     # Create LoRA config
@@ -135,8 +133,7 @@ def render_setup_tab(
                     for p in st.session_state.model.parameters()
                     if p.requires_grad
                 )
-                total = sum(p.numel()
-                            for p in st.session_state.model.parameters())
+                total = sum(p.numel() for p in st.session_state.model.parameters())
 
                 col1, col2, col3 = st.columns(3)
                 col1.metric("Total", f"{total:,}")
@@ -181,7 +178,8 @@ def render_training_tab(
             # Validate output_name
             if not output_name or output_name.strip() == "":
                 st.error(
-                    "❌ Please enter an output model name in the sidebar before starting training!")
+                    "❌ Please enter an output model name in the sidebar before starting training!"
+                )
                 return
 
             st.session_state.training_started = True
@@ -225,16 +223,13 @@ def render_training_tab(
                 st.success("🎉 Training completed successfully!")
 
                 col1, col2, col3 = st.columns(3)
-                col1.metric("Training Loss",
-                            f"{train_result.training_loss:.4f}")
+                col1.metric("Training Loss", f"{train_result.training_loss:.4f}")
                 col2.metric("Steps", train_result.global_step)
-                col3.metric(
-                    "Time (s)", f"{train_result.metrics['train_runtime']:.1f}")
+                col3.metric("Time (s)", f"{train_result.metrics['train_runtime']:.1f}")
 
                 # Evaluate
                 eval_results = trainer.evaluate()
-                st.metric("Validation Loss",
-                          f"{eval_results['eval_loss']:.4f}")
+                st.metric("Validation Loss", f"{eval_results['eval_loss']:.4f}")
 
                 # Plot metrics
                 if len(trainer.state.log_history) > 0:
@@ -347,7 +342,7 @@ def render_testing_tab(device: torch.device) -> None:
                 st.success(generated_text)
 
                 # Show only generated part
-                generated_only = generated_text[len(prompt):].strip()
+                generated_only = generated_text[len(prompt) :].strip()
                 st.markdown("**Generated part:**")
                 st.code(generated_only, language="text")
 
@@ -408,7 +403,8 @@ def render_export_tab(model_name: str, output_name: str) -> None:
         st.warning("⚠️ Complete training first!")
     elif not output_name or output_name.strip() == "":
         st.error(
-            "❌ Please enter an output model name in the sidebar before exporting!")
+            "❌ Please enter an output model name in the sidebar before exporting!"
+        )
     else:
         col1, col2 = st.columns(2)
 
@@ -492,8 +488,7 @@ def render_export_tab(model_name: str, output_name: str) -> None:
                         for f in os.listdir(merged_path)
                     ) / (1024 * 1024)
 
-                    st.success(
-                        f"✅ Merged model saved! Size: {total_size:.1f} MB")
+                    st.success(f"✅ Merged model saved! Size: {total_size:.1f} MB")
 
                     # Show loading code
                     with st.expander("📖 Code to load the merged model"):
