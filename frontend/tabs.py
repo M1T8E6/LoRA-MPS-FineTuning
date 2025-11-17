@@ -178,6 +178,12 @@ def render_training_tab(
 
         # Start training button
         if st.button("🚀 Start Training", type="primary", use_container_width=True):
+            # Validate output_name
+            if not output_name or output_name.strip() == "":
+                st.error(
+                    "❌ Please enter an output model name in the sidebar before starting training!")
+                return
+
             st.session_state.training_started = True
 
             try:
@@ -400,6 +406,9 @@ def render_export_tab(model_name: str, output_name: str) -> None:
 
     if not st.session_state.training_complete:
         st.warning("⚠️ Complete training first!")
+    elif not output_name or output_name.strip() == "":
+        st.error(
+            "❌ Please enter an output model name in the sidebar before exporting!")
     else:
         col1, col2 = st.columns(2)
 

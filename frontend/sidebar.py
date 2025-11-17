@@ -159,8 +159,9 @@ def render_sidebar():
 
     # Output name
     output_name = st.sidebar.text_input(
-        "Output model name",
-        value="my-lora-model",
+        label="Output model name",
+        value="",
+        placeholder="Type model name...",
         help="Name to save the fine-tuned model",
     )
 
