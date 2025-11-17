@@ -1,3 +1,6 @@
+prepare-env:
+	./scripts/prepare-env.sh
+
 install:
 	pip install -r requirements.txt
 

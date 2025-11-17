@@ -159,7 +159,28 @@ A: MPS is only available on Apple Silicon. For other platforms, use CUDA or CPU.
 ---
 
 ## Contributing
-Issues and PRs are welcome. Share what model/dataset you tuned and results you observed!
+
+Contributions are welcome! If you'd like to contribute:
+
+1. **Setup your development environment:**
+   ```bash
+   make prepare-env
+   ```
+   This will set up environment files and install git hooks for linting and testing.
+
+2. **Make your changes** following the existing code style
+
+3. **Test your changes:**
+   ```bash
+   make lint  # Check code quality
+   make test  # Run tests (if available)
+   ```
+
+4. **Submit a Pull Request** with a clear description of your changes
+
+**Note:** The pre-push git hook will automatically run linting and tests before each push to ensure code quality.
+
+Feel free to share what model/dataset you tuned and the results you observed!
 
 
 ## License
