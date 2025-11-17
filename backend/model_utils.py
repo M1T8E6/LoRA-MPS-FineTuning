@@ -48,9 +48,7 @@ def load_model_and_tokenizer(
         Tuple of (model, tokenizer)
     """
     # Load tokenizer
-    loaded_tokenizer = AutoTokenizer.from_pretrained(
-        model_id, trust_remote_code=True
-    )
+    loaded_tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
 
     # Set pad token if not exists
     if loaded_tokenizer.pad_token is None:

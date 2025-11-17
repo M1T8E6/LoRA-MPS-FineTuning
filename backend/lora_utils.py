@@ -36,10 +36,7 @@ def find_target_modules(
 
 
 def create_lora_config(
-    r: int,
-    alpha: int,
-    dropout: float,
-    modules_to_target: List[str]
+    r: int, alpha: int, dropout: float, modules_to_target: List[str]
 ) -> LoraConfig:
     """
     Create LoRA configuration

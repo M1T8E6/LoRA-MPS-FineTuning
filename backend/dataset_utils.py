@@ -8,10 +8,7 @@ from datasets import load_dataset, Dataset, DatasetDict
 
 
 def prepare_dataset(
-    ds_name: str,
-    n_samples: int,
-    tok: PreTrainedTokenizerBase,
-    seq_max_length: int
+    ds_name: str, n_samples: int, tok: PreTrainedTokenizerBase, seq_max_length: int
 ) -> Tuple[Dataset, Dataset, int]:
     """
     Load and tokenize dataset from HuggingFace

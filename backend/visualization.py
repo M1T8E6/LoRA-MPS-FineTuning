@@ -18,9 +18,7 @@ def plot_training_metrics(training_history: List[Dict[str, Any]]) -> go.Figure:
         Plotly Figure object
     """
     # Extract losses
-    losses_train = [
-        entry["loss"] for entry in training_history if "loss" in entry
-    ]
+    losses_train = [entry["loss"] for entry in training_history if "loss" in entry]
     losses_eval = [
         entry["eval_loss"] for entry in training_history if "eval_loss" in entry
     ]
@@ -57,10 +55,6 @@ def plot_training_metrics(training_history: List[Dict[str, Any]]) -> go.Figure:
         )
 
     # Update layout
-    figure.update_layout(
-        height=400,
-        showlegend=True,
-        title_text="Training Metrics"
-    )
+    figure.update_layout(height=400, showlegend=True, title_text="Training Metrics")
 
     return figure
