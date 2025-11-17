@@ -9,3 +9,6 @@ login:
 
 run:
 	streamlit run app.py --server.port 8501 --server.headless true
+
+lint:
+	pylint app --fail-under=9.0 --fail-on=E

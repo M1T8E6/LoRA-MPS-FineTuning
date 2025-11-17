@@ -1,0 +1,26 @@
+[MASTER]
+ignore=venv,build,dist,docs
+jobs=1
+
+[MESSAGES CONTROL]
+disable=
+    missing-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    C0301,  # line-too-long
+
+[REPORTS]
+output-format=colorized
+
+[DESIGN]
+max-args=10
+max-attributes=10
+
+[BASIC]
+good-names=i,j,k,ex,Run,_
+
+[TYPECHECK]
+generated-members=numpy.*,torch.*,cv2.*
+
+[LOGGING]
+logging-modules=logging

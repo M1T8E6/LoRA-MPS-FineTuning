@@ -6,6 +6,7 @@ ipykernel
 matplotlib
 peft
 plotly
+pylint
 python-dotenv
 scipy
 streamlit
