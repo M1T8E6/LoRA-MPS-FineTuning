@@ -6,3 +6,6 @@ uv-install:
 
 login:
 	huggingface-cli login
+
+run:
+	streamlit run app.py --server.port 8501 --server.headless true
