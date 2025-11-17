@@ -2,20 +2,12 @@
 Configuration and initialization utilities
 """
 
-import os
 import streamlit as st
 
 
 def load_css() -> None:
-    """Load custom CSS from external file"""
-    css_file = os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), "style", "main.css"
-    )
-    if os.path.exists(css_file):
-        with open(css_file, "r", encoding="utf-8") as f:
-            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-    else:
-        st.warning("⚠️ CSS file not found!")
+    """Legacy function - CSS loading removed to use native Streamlit styling"""
+    pass
 
 
 def init_session_state() -> None:

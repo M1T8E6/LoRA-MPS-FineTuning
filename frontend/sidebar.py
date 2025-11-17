@@ -2,7 +2,6 @@
 Sidebar configuration UI components
 """
 
-from typing import Tuple
 import streamlit as st
 import torch
 from backend import check_mps_availability

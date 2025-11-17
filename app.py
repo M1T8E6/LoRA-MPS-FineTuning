@@ -55,7 +55,8 @@ st.title("🚀 LoRA Fine-Tuning Studio")
 st.subheader("Fine-tuning LLMs on Mac with LoRA and MPS")
 
 # Tabs
-tab1, tab2, tab3, tab4 = st.tabs(["📋 Setup", "🎓 Training", "🧪 Testing", "💾 Export"])
+tab1, tab2, tab3, tab4 = st.tabs(
+    ["📋 Setup", "🎓 Training", "🧪 Testing", "💾 Export"])
 
 # =============================================================================
 # RENDER TABS

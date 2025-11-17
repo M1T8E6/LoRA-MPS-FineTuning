@@ -2,7 +2,6 @@
 Training utilities and configuration
 """
 
-from typing import Optional
 from transformers import (
     TrainingArguments,
     Trainer,
@@ -87,7 +86,8 @@ def create_trainer(
         Trainer instance
     """
     # Create data collator
-    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
+    data_collator = DataCollatorForLanguageModeling(
+        tokenizer=tokenizer, mlm=False)
 
     # Create and return trainer
     return Trainer(
