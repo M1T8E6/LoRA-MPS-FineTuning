@@ -18,14 +18,6 @@ from backend import (
 
 
 def render_setup_tab(
-    model_name: str,
-    dataset_name: str,
-    num_samples: int,
-    max_length: int,
-    lora_r: int,
-    lora_alpha: int,
-    lora_dropout: float,
-    batch_size: int,
     device: torch.device,
 ) -> None:
     """Render the Setup tab"""
@@ -34,78 +26,209 @@ def render_setup_tab(
     col1, col2 = st.columns(2)
 
     with col1:
-        st.subheader("🤖 Model")
-        st.info(f"**Selected model:** `{model_name}`", icon="ℹ️")
+        st.subheader("🤖 Model Configuration")
+
+        # Model selection
+        model_selection_type = st.radio(
+            "Selection mode",
+            ["Preset", "Custom"],
+            horizontal=True,
+            help="Choose a preset model or enter a custom path",
+            key="model_selection_type",
+        )
+
+        if model_selection_type == "Preset":
+            model_name = st.selectbox(
+                "Select base model",
+                [
+                    "meta-llama/Llama-3.2-1B-Instruct",
+                    "meta-llama/Llama-3.2-3B-Instruct",
+                ],
+                help="Smaller models (1B) are faster but less capable",
+                key="model_name_preset",
+            )
+        else:
+            model_name = st.text_input(
+                "HuggingFace model path",
+                value="",
+                help="Enter the model path (e.g., 'meta-llama/Llama-3.2-1B' or 'gpt2')",
+                placeholder="username/model-name",
+                key="model_name_custom",
+            )
+
+        st.session_state.model_name = model_name
+
+        st.markdown("---")
 
         if st.button(
             "Load Model and Tokenizer", type="primary", use_container_width=True
         ):
-            try:
-                with st.spinner(f"Loading model {model_name}..."):
-                    model, tokenizer = load_model_and_tokenizer(model_name, device)
-                    st.session_state.model = model
-                    st.session_state.tokenizer = tokenizer
-                    st.session_state.model_loaded = True
+            model_name = st.session_state.get("model_name", "")
+            if not model_name:
+                st.error("❌ Please select a model first!")
+            else:
+                try:
+                    with st.spinner(f"Loading model {model_name}..."):
+                        model, tokenizer = load_model_and_tokenizer(model_name, device)
+                        st.session_state.model = model
+                        st.session_state.tokenizer = tokenizer
+                        st.session_state.model_loaded = True
 
-                    # Model info
-                    total_params = sum(p.numel() for p in model.parameters())
+                        # Model info
+                        total_params = sum(p.numel() for p in model.parameters())
 
-                    st.success("✅ Model loaded successfully!")
-                    st.metric("Total parameters", f"{total_params:,}")
+                        st.success("✅ Model loaded successfully!")
+                        st.metric("Total parameters", f"{total_params:,}")
 
-            except (ValueError, OSError, RuntimeError) as e:
-                st.error(f"❌ Loading error: {str(e)}")
-            except ImportError as e:
-                st.error(f"❌ Import error: {str(e)} - Check dependencies")
+                except (ValueError, OSError, RuntimeError) as e:
+                    st.error(f"❌ Loading error: {str(e)}")
+                except ImportError as e:
+                    st.error(f"❌ Import error: {str(e)} - Check dependencies")
 
     with col2:
-        st.subheader("📊 Dataset")
-        st.info(
-            f"**Dataset:** `{dataset_name}`\n\n**Samples:** {num_samples}", icon="ℹ️"
+        st.subheader("📊 Dataset Configuration")
+
+        # Dataset selection
+        dataset_selection_type = st.radio(
+            "Dataset selection mode",
+            ["Preset", "Custom"],
+            horizontal=True,
+            help="Choose a preset dataset or enter a custom path",
+            key="dataset_selection_type",
         )
+
+        if dataset_selection_type == "Preset":
+            dataset_name = st.selectbox(
+                "Select dataset",
+                ["imdb", "wikitext-2-raw-v1", "tiny_shakespeare"],
+                help="IMDB: movie reviews, WikiText: Wikipedia text",
+                key="dataset_name_preset",
+            )
+        else:
+            dataset_name = st.text_input(
+                "HuggingFace dataset path",
+                value="",
+                help="Enter the dataset path (e.g., 'squad', 'glue/mrpc', 'wikipedia')",
+                placeholder="username/dataset-name or dataset-name",
+                key="dataset_name_custom",
+            )
+
+        num_samples = st.slider(
+            "Number of samples",
+            min_value=100,
+            max_value=10000,
+            value=1000,
+            step=100,
+            help="More samples = longer training but better results",
+            key="widget_num_samples",
+        )
+
+        max_length = st.slider(
+            "Max sequence length",
+            min_value=128,
+            max_value=1024,
+            value=512,
+            step=128,
+            help="Longer sequences require more memory",
+            key="widget_max_length",
+        )
+
+        # Save to session state
+        st.session_state.dataset_name = dataset_name
+        st.session_state.num_samples = num_samples
+        st.session_state.max_length = max_length
+
+        st.markdown("---")
 
         if st.button("Load Dataset", type="primary", use_container_width=True):
             if not st.session_state.model_loaded:
                 st.warning("⚠️ Load the model first!")
             else:
-                try:
-                    with st.spinner(f"Loading dataset {dataset_name}..."):
-                        train_ds, eval_ds, total = prepare_dataset(
-                            dataset_name,
-                            num_samples,
-                            st.session_state.tokenizer,
-                            max_length,
-                        )
-                        st.session_state.train_dataset = train_ds
-                        st.session_state.eval_dataset = eval_ds
-                        st.session_state.dataset_loaded = True
+                dataset_name = st.session_state.get("dataset_name", "")
+                num_samples = st.session_state.get("num_samples", 1000)
+                max_length = st.session_state.get("max_length", 512)
 
-                        st.success("✅ Dataset loaded and tokenized!")
-                        col_a, col_b = st.columns(2)
+                if not dataset_name:
+                    st.error("❌ Please select a dataset first!")
+                else:
+                    try:
+                        with st.spinner(f"Loading dataset {dataset_name}..."):
+                            train_ds, eval_ds, total = prepare_dataset(
+                                dataset_name,
+                                num_samples,
+                                st.session_state.tokenizer,
+                                max_length,
+                            )
+                            st.session_state.train_dataset = train_ds
+                            st.session_state.eval_dataset = eval_ds
+                            st.session_state.dataset_loaded = True
 
-                        col_a.metric("Training samples", len(train_ds))
-                        col_b.metric("Validation samples", len(eval_ds))
+                            st.success("✅ Dataset loaded and tokenized!")
+                            col_a, col_b = st.columns(2)
 
-                except (ValueError, KeyError, OSError) as e:
-                    st.error(f"❌ Error: {str(e)}")
-                except ImportError as e:
-                    st.error(f"❌ Import error: {str(e)}")
+                            col_a.metric("Training samples", len(train_ds))
+                            col_b.metric("Validation samples", len(eval_ds))
+
+                    except (ValueError, KeyError, OSError) as e:
+                        st.error(f"❌ Error: {str(e)}")
+                    except ImportError as e:
+                        st.error(f"❌ Import error: {str(e)}")
 
     st.divider()
 
     # LoRA Configuration
     if st.session_state.model_loaded:
-        st.subheader("⚙️ Apply LoRA")
+        st.subheader("🔧 LoRA Configuration")
 
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Rank", lora_r)
-        col2.metric("Alpha", lora_alpha)
-        col3.metric("Dropout", f"{lora_dropout:.2f}")
-        col4.metric("Batch Size", batch_size)
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            lora_r = st.slider(
+                "Rank (r)",
+                min_value=4,
+                max_value=64,
+                value=16,
+                step=4,
+                help="LoRA matrix dimension. Higher = more parameters",
+                key="widget_lora_r",
+            )
+
+        with col2:
+            lora_alpha = st.slider(
+                "Alpha",
+                min_value=8,
+                max_value=128,
+                value=32,
+                step=8,
+                help="Scaling factor. Generally alpha = 2 × r",
+                key="widget_lora_alpha",
+            )
+
+        with col3:
+            lora_dropout = st.slider(
+                "Dropout",
+                min_value=0.0,
+                max_value=0.2,
+                value=0.05,
+                step=0.05,
+                help="Dropout for regularization",
+                key="widget_lora_dropout",
+            )
+
+        # Save to session state
+        st.session_state.lora_r = lora_r
+        st.session_state.lora_alpha = lora_alpha
+        st.session_state.lora_dropout = lora_dropout
+
+        st.markdown("---")
 
         if st.button(
             "Apply LoRA to Model", type="primary", use_container_width=True, icon="🔧"
         ):
+            lora_r = st.session_state.get("lora_r", 16)
+            lora_alpha = st.session_state.get("lora_alpha", 32)
+            lora_dropout = st.session_state.get("lora_dropout", 0.05)
+
             try:
                 with st.spinner("Applying LoRA..."):
                     # Find target modules
@@ -146,27 +269,71 @@ def render_setup_tab(
                 st.error(f"❌ PEFT error: {str(e)} - Check PEFT installation")
 
 
-def render_training_tab(
-    num_epochs: int,
-    batch_size: int,
-    gradient_accumulation: int,
-    learning_rate: float,
-    output_name: str,
-) -> None:
+def render_training_tab() -> None:
     """Render the Training tab"""
     st.header("🎓 Model Training")
 
     if not st.session_state.get("lora_applied", False):
         st.warning("⚠️ Complete the setup in the Setup tab first!")
     else:
-        # Training configuration summary
-        st.subheader("📋 Training Configuration")
+        # Training configuration
+        st.subheader("⚙️ Training Parameters")
 
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Epochs", num_epochs)
-        col2.metric("Batch Size", batch_size)
-        col3.metric("Gradient Acc.", gradient_accumulation)
-        col4.metric("Learning Rate", f"{learning_rate:.0e}")
+        col1, col2 = st.columns(2)
+
+        with col1:
+            num_epochs = st.slider(
+                "Epochs",
+                min_value=1,
+                max_value=10,
+                value=3,
+                help="Number of complete passes through the dataset",
+                key="widget_num_epochs",
+            )
+
+            batch_size = st.slider(
+                "Batch size",
+                min_value=1,
+                max_value=16,
+                value=4,
+                step=1,
+                help="Reduce if you have memory issues",
+                key="widget_batch_size",
+            )
+
+        with col2:
+            gradient_accumulation = st.slider(
+                "Gradient accumulation steps",
+                min_value=1,
+                max_value=16,
+                value=4,
+                step=1,
+                help="Simulates larger batch sizes",
+                key="widget_gradient_accumulation",
+            )
+
+            learning_rate = st.select_slider(
+                "Learning rate",
+                options=[1e-5, 2e-5, 5e-5, 1e-4, 2e-4, 5e-4],
+                value=2e-4,
+                help="Learning speed",
+                key="widget_learning_rate",
+            )
+
+        output_name = st.text_input(
+            label="Output model name",
+            value="",
+            placeholder="my-finetuned-model",
+            help="Name to save the fine-tuned model",
+            key="widget_output_name",
+        )
+
+        # Save to session state
+        st.session_state.num_epochs = num_epochs
+        st.session_state.batch_size = batch_size
+        st.session_state.gradient_accumulation = gradient_accumulation
+        st.session_state.learning_rate = learning_rate
+        st.session_state.output_name = output_name
 
         effective_batch = batch_size * gradient_accumulation
         st.info(f"**Effective Batch Size:** {effective_batch}")
@@ -395,15 +562,18 @@ def render_testing_tab(device: torch.device) -> None:
                         st.error(f"Error: {str(e)}")
 
 
-def render_export_tab(model_name: str, output_name: str) -> None:
+def render_export_tab() -> None:
     """Render the Export tab"""
     st.header("💾 Export and Save")
+
+    output_name = st.session_state.get("output_name", "")
+    model_name = st.session_state.get("model_name", "")
 
     if not st.session_state.training_complete:
         st.warning("⚠️ Complete training first!")
     elif not output_name or output_name.strip() == "":
         st.error(
-            "❌ Please enter an output model name in the sidebar before exporting!"
+            "❌ Please enter an output model name in the Training tab before exporting!"
         )
     else:
         col1, col2 = st.columns(2)

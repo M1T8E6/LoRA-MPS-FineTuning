@@ -1,5 +1,5 @@
 """
-Frontend components for LoRA Fine-Tuning Studio
+Frontend components for Just a Fine-Tuning Studio
 """
 
 from .config import load_css, init_session_state
